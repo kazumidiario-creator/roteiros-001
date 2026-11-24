@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRAMEWORKS REELS | 001</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --dot: #cbd5e1;
+    --card: #ffffff;
+    --text: #0f172a;
+    --muted: #334155;
+    --border: #cbd5e1;
+    --line: #94a3b8;
+    --bar-bg: #ffffff;
+    --bar-border: #e2e8f0;
+    --pill-bg: #f1f5f9;
+    --center-bg: #0f172a;
+    --center-text: #ffffff;
+  }
+  body.dark {
+    --bg: #070709;
+    --dot: #1f2937;
+    --card: #111217;
+    --text: #f8fafc;
+    --muted: #cbd5e1;
+    --border: #27272a;
+    --line: #475569;
+    --bar-bg: #0d0e12;
+    --bar-border: #1f2937;
+    --pill-bg: #18181b;
+    --center-bg: #111217;
+    --center-text: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--dot) 1.5px, transparent 1.5px);
+    background-size: 32px 32px;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Toolbar */
+  .toolbar {
+    background: var(--bar-bg);
+    border-bottom: 1px solid var(--bar-border);
+    padding: 10px 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 100;
+  }
+  body.hide-ui .toolbar, body.hide-ui .bottom-bar {
+    display: none !important;
+  }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab-btn {
+    background: var(--pill-bg);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .tab-btn.active {
+    background: #F15A22;
+    color: #000000;
+    border-color: #F15A22;
+  }
+  .actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .step-pill {
+    background: var(--pill-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 11px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .step-pill.active {
+    background: #10b981;
+    color: #ffffff;
+    border-color: #059669;
+  }
+
+  /* Viewport & Canvas 6000x4200 */
+  .viewport {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+  }
+  .viewport:active { cursor: grabbing; }
+
+  .canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6000px;
+    height: 4200px;
+    transform-origin: 0 0;
+    transition: transform 0.72s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .canvas.dragging { transition: none !important; }
+
+  .connectors {
+    position: absolute;
+    inset: 0;
+    width: 6000px;
+    height: 4200px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .conn-line {
+    stroke: var(--line);
+    stroke-width: 5;
+    stroke-dasharray: 14 10;
+    fill: none;
+  }
+
+  .node-box {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    cursor: pointer;
+    transition: opacity 0.35s, box-shadow 0.3s;
+  }
+  body.no-spoilers .node-box.locked {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Card Central (Headline) */
+  .center-card {
+    width: 760px;
+    background: var(--center-bg);
+    color: var(--center-text);
+    border-radius: 28px;
+    padding: 46px 48px;
+    text-align: center;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.22);
+    border: 5px solid #F15A22;
+  }
+  .center-badge {
+    display: inline-block;
+    background: #F15A22;
+    color: #000000;
+    font-size: 14px;
+    font-weight: 900;
+    padding: 6px 16px;
+    border-radius: 99px;
+    letter-spacing: 0.08em;
+    margin-bottom: 18px;
+    text-transform: uppercase;
+  }
+  .center-title {
+    font-size: 42px;
+    font-weight: 900;
+    line-height: 1.18;
+    margin-bottom: 18px;
+  }
+  .center-sub {
+    font-size: 23px;
+    font-weight: 700;
+    color: #fde68a;
+    background: rgba(255,255,255,0.08);
+    padding: 12px 22px;
+    border-radius: 14px;
+    display: inline-block;
+  }
+
+  /* Branch Cards */
+  .branch-card {
+    width: 720px;
+    background: var(--card);
+    color: var(--text);
+    border: 3.5px solid var(--border);
+    border-radius: 26px;
+    padding: 40px 44px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.12);
+  }
+  .branch-card.focused-now {
+    border-color: #10b981;
+    box-shadow: 0 28px 75px rgba(16, 185, 129, 0.2);
+  }
+  .branch-card.is-red.focused-now {
+    border-color: #ef4444;
+    box-shadow: 0 28px 75px rgba(239, 68, 68, 0.22);
+  }
+  .num-circle {
+    position: absolute;
+    top: -24px;
+    left: -24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #F15A22;
+    color: #000000;
+    font-weight: 900;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.22);
+  }
+  .tag-pill {
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .c-red { background: #fee2e2; color: #b91c1c; }
+  .c-blue { background: #e0f2fe; color: #0369a1; }
+  .c-green { background: #dcfce7; color: #15803d; }
+  .c-amber { background: #fef3c7; color: #b45309; }
+  body.dark .c-red { background: rgba(239,68,68,0.18); color: #fca5a5; }
+  body.dark .c-blue { background: rgba(59,130,246,0.18); color: #93c5fd; }
+  body.dark .c-green { background: rgba(16,185,129,0.18); color: #6ee7b7; }
+  body.dark .c-amber { background: rgba(245,158,11,0.18); color: #fcd34d; }
+
+  .b-title {
+    font-size: 34px;
+    font-weight: 900;
+    color: var(--text);
+    margin-bottom: 14px;
+    line-height: 1.18;
+  }
+  .b-highlight {
+    font-size: 28px;
+    font-weight: 900;
+    color: #059669;
+    background: #ecfdf5;
+    border-left: 6px solid #10b981;
+    padding: 12px 18px;
+    border-radius: 10px;
+    margin-bottom: 18px;
+  }
+  body.dark .b-highlight {
+    background: rgba(16,185,129,0.14);
+    color: #34d399;
+  }
+  .c-red-hl {
+    color: #dc2626 !important;
+    background: #fef2f2 !important;
+    border-left-color: #ef4444 !important;
+  }
+  body.dark .c-red-hl {
+    background: rgba(239,68,68,0.14) !important;
+    color: #f87171 !important;
+  }
+  .b-desc {
+    font-size: 22px;
+    color: var(--muted);
+    line-height: 1.5;
+    font-weight: 600;
+  }
+  .b-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    margin-top: 4px;
+  }
+  .b-list li {
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    line-height: 1.35;
+  }
+  .ico {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 900;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .ico-x { background: #fee2e2; color: #dc2626; }
+  .ico-v { background: #dcfce7; color: #059669; }
+  body.dark .ico-x { background: rgba(239,68,68,0.2); color: #f87171; }
+  body.dark .ico-v { background: rgba(16,185,129,0.2); color: #34d399; }
+
+  /* CTA Box */
+  .cta-card {
+    width: 760px;
+    background: #ecfdf5;
+    color: #064e3b;
+    border: 4px dashed #10b981;
+    border-radius: 26px;
+    padding: 42px 46px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(16, 185, 129, 0.16);
+  }
+  body.dark .cta-card {
+    background: #0b1f18;
+    color: #ecfdf5;
+    border-color: #10b981;
+  }
+  .cta-badge {
+    display: inline-block;
+    background: #10b981;
+    color: #000000;
+    font-size: 13px;
+    font-weight: 900;
+    padding: 6px 16px;
+    border-radius: 99px;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+  .cta-title {
+    font-size: 36px;
+    font-weight: 900;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+  .cta-sub {
+    font-size: 24px;
+    font-weight: 800;
+    color: #047857;
+  }
+  body.dark .cta-sub { color: #34d399; }
+
+  /* Bottom Bar */
+  .bottom-bar {
+    background: var(--bar-bg);
+    border-top: 1px solid var(--bar-border);
+    padding: 9px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12.5px;
+    color: var(--muted);
+    z-index: 100;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .kbd {
+    background: var(--pill-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-weight: 800;
+    font-size: 11.5px;
+    margin: 0 2px;
+  }
+</style>
+</head>
+<body class="no-spoilers dark">
+
+<div class="toolbar">
+  <div class="tabs" id="tabs-row"></div>
+  <div class="actions">
+    <button class="step-pill active" id="btn-step-0" onclick="goToStep(0)">0. Hook</button>
+    <button class="step-pill" id="btn-step-1" onclick="goToStep(1)">1. Bloco 1</button>
+    <button class="step-pill" id="btn-step-2" onclick="goToStep(2)">2. Bloco 2</button>
+    <button class="step-pill" id="btn-step-3" onclick="goToStep(3)">3. Bloco 3</button>
+    <button class="step-pill" id="btn-step-4" onclick="goToStep(4)">4. Bloco 4</button>
+    <button class="step-pill" id="btn-step-5" onclick="goToStep(5)">5. CTA</button>
+    <button class="step-pill" id="btn-step-6" onclick="goToStep(6)">6. Mapa Todo</button>
+    <button class="step-pill" onclick="document.body.classList.toggle('dark')" title="Tecla D">Claro / Escuro (D)</button>
+    <button class="step-pill" onclick="document.body.classList.toggle('hide-ui')" title="Tecla H">Limpar Tela (H)</button>
+  </div>
+</div>
+
+<div class="viewport" id="viewport">
+  <div class="canvas" id="canvas">
+    <svg class="connectors" id="svg-lines" viewBox="0 0 6000 4200"></svg>
+    <div id="nodes-container"></div>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <div>
+    <strong>Zero Spoiler Ativo:</strong> Só aparece o bloco da vez. Aperte <span class="kbd">F11</span> e depois <span class="kbd">H</span> para gravar limpo em tela dividida no OBS (duplo clique edita qualquer texto).
+  </div>
+  <div>
+    Avançar: <span class="kbd">&rarr;</span> ou <span class="kbd">Espaço</span> |
+    Voltar: <span class="kbd">&larr;</span> |
+    Ir direto: <span class="kbd">0</span> a <span class="kbd">6</span> |
+    Tema: <span class="kbd">D</span> |
+    Limpar menu: <span class="kbd">H</span>
+  </div>
+</div>
+
+<script>
+const FWS = [
+  {
+    id: "fw-ig-fb",
+    tab: "Roteiro 1: Instagram + Amazon vs. Facebook ODR",
+    center: {
+      x: 3000, y: 2100,
+      badge: "ATUALIZAÇÃO META · EUA",
+      title: "Essa função do Instagram vai falir o TikTok Shop?",
+      sub: "Links de afiliado da Amazon direto nos Reels"
+    },
+    nodes: [
+      {
+        num: "1", x: 1000, y: 750,
+        tag: "COMO REALMENTE FUNCIONA",
+        color: "blue",
+        title: "A Amazon Só Rastreia a Venda",
+        highlight: "Até 100% de comissão por parceria direta",
+        desc: "Quem ganha pesado nesse modelo não depende da comissão padrão da Amazon: fecha acordo direto com marcas que vendem lá dentro."
+      },
+      {
+        num: "2", x: 5000, y: 750,
+        tag: "AS 4 TRAVAS DO INSTAGRAM (DTC)",
+        color: "red",
+        title: "Por Que É Difícil e Caro Começar Assim",
+        highlight: "4 gargalos pesados para quem está no Brasil",
+        listType: "x",
+        items: [
+          "Precisa fechar parceria direta com marcas americanas",
+          "Custo operacional alto com celular físico em escala",
+          "Instagram não restringe país de entrega",
+          "Exige vídeos mais longos e com superprodução"
+        ]
+      },
+      {
+        num: "3", x: 5000, y: 3450,
+        tag: "A BRECHA NA PRÓPRIA META",
+        color: "green",
+        title: "Orgânico no Facebook Americano (ODR)",
+        highlight: "Zero celular físico · Só EUA · Vídeos de 20s",
+        listType: "v",
+        items: [
+          "Roda direto do computador (sem celular físico)",
+          "Trava nativa de país 100% nos Estados Unidos",
+          "Vídeo simples de 20s com IA (a página pronta fecha)",
+          "Ofertas prontas pagando US$ 200 (+R$ 1.040 no Pix)"
+        ]
+      },
+      {
+        num: "4", x: 1000, y: 3450,
+        tag: "PROVA REAL · ZERO ZERO UM",
+        color: "amber",
+        title: "Resultados no Facebook Americano",
+        highlight: "R$ 1.330.082,75 só em novembro",
+        desc: "Mais de R$ 2.691.905,87 acumulados pelos membros, com um único dia batendo US$ 11.000 e 74 vendas."
+      }
+    ],
+    cta: {
+      x: 3000, y: 3850,
+      badge: "VEJA POR DENTRO",
+      title: "Facebook EUA sem celular físico e sem superprodução",
+      sub: "Assista agora ao 1º Vídeo Fixado aqui do meu perfil"
+    }
+  },
+  {
+    id: "fw-distracao",
+    tab: "Roteiro 2: Distração vs. Dólar (@mazbo)",
+    center: {
+      x: 3000, y: 2100,
+      badge: "REALIDADE DE 2026",
+      title: "Nunca foi tão fácil fazer dinheiro em dólar",
+      sub: "Mas nunca teve tanta distração assim"
+    },
+    nodes: [
+      {
+        num: "1", x: 1000, y: 750,
+        tag: "ANOS 90 VS. HOJE",
+        color: "blue",
+        title: "O Poder Aberto na Sua Tela",
+        highlight: "Vídeos de 20s com IA = US$ 200 (+R$ 1.040)",
+        desc: "Qualquer empresário dos anos 90 pagaria milhões para vender produtos físicos nos EUA sem aparecer e sem falar inglês."
+      },
+      {
+        num: "2", x: 5000, y: 750,
+        tag: "A ARMADILHA NOTURNA",
+        color: "red",
+        title: "O Sequestro da Sua Atenção",
+        highlight: "2 horas por noite rolando Reels",
+        desc: "Não é fraqueza sua: engenheiros muito mais bem pagos que você criaram o feed só para te prender nessa tela."
+      },
+      {
+        num: "3", x: 5000, y: 3450,
+        tag: "ENQUANTO VOCÊ ROLA O FEED",
+        color: "green",
+        title: "Quem Está Te Passando em Silêncio",
+        highlight: "R$ 1.330.082,75 só em novembro",
+        desc: "Membros da Zero Zero Um já somam mais de R$ 2,6 milhões acumulados usando a mesma internet para operar em dólar."
+      },
+      {
+        num: "4", x: 1000, y: 3450,
+        tag: "DOIS LADOS DA MESMA TELA",
+        color: "amber",
+        title: "Consumidor vs. Operador em Dólar",
+        highlight: "Mesmo celular · Dois resultados opostos",
+        desc: "A diferença não está na ferramenta que você tem, está em qual lado do algoritmo você escolhe jogar à noite."
+      }
+    ],
+    cta: {
+      x: 3000, y: 3850,
+      badge: "SAIA DA PLATEIA",
+      title: "Aprenda a jogar do outro lado dessa tela",
+      sub: "Assista agora ao 1º Vídeo Fixado aqui do meu perfil"
+    }
+  }
+];
+
+let currentFwIdx = 0;
+let currentStep = 0;
+let maxUnlockedStep = 0;
+
+let scale = 1;
+let tx = 0;
+let ty = 0;
+let isDragging = false;
+let startX = 0;
+let startY = 0;
+
+const viewportEl = document.getElementById('viewport');
+const canvasEl = document.getElementById('canvas');
+
+function applyTransform() {
+  canvasEl.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+}
+
+function centerCameraOn(wx, wy, targetScale) {
+  const vw = viewportEl.clientWidth;
+  const vh = viewportEl.clientHeight;
+  scale = targetScale;
+  tx = (vw / 2) - (wx * scale);
+  ty = (vh / 2) - (wy * scale);
+  applyTransform();
+}
+
+function renderTabs() {
+  const row = document.getElementById('tabs-row');
+  row.innerHTML = '';
+  FWS.forEach((f, i) => {
+    const b = document.createElement('button');
+    b.className = 'tab-btn' + (i === currentFwIdx ? ' active' : '');
+    b.textContent = f.tab;
+    b.onclick = () => {
+      currentFwIdx = i;
+      renderTabs();
+      loadFW(i);
+    };
+    row.appendChild(b);
+  });
+}
+
+function colorClass(c) {
+  if (c === 'red') return 'c-red';
+  if (c === 'blue') return 'c-blue';
+  if (c === 'green') return 'c-green';
+  return 'c-amber';
+}
+
+function loadFW(idx) {
+  const f = FWS[idx];
+  maxUnlockedStep = 0;
+  currentStep = 0;
+
+  const svg = document.getElementById('svg-lines');
+  let linesHtml = '';
+  f.nodes.forEach(n => {
+    linesHtml += `<line class="conn-line" x1="${f.center.x}" y1="${f.center.y}" x2="${n.x}" y2="${n.y}" />`;
+  });
+  linesHtml += `<line class="conn-line" x1="${f.center.x}" y1="${f.center.y}" x2="${f.cta.x}" y2="${f.cta.y}" />`;
+  svg.innerHTML = linesHtml;
+
+  const container = document.getElementById('nodes-container');
+  container.innerHTML = '';
+
+  // Step 0: Center
+  const centerDiv = document.createElement('div');
+  centerDiv.className = 'node-box center-card';
+  centerDiv.id = 'step-node-0';
+  centerDiv.style.left = f.center.x + 'px';
+  centerDiv.style.top = f.center.y + 'px';
+  centerDiv.onclick = (e) => { e.stopPropagation(); goToStep(0); };
+  centerDiv.innerHTML = `
+    <div class="center-badge" ondblclick="this.contentEditable=true; this.focus();">${f.center.badge}</div>
+    <div class="center-title" ondblclick="this.contentEditable=true; this.focus();">${f.center.title}</div>
+    <div class="center-sub" ondblclick="this.contentEditable=true; this.focus();">${f.center.sub}</div>
+  `;
+  container.appendChild(centerDiv);
+
+  // Steps 1..4
+  f.nodes.forEach((n, i) => {
+    const stepNum = i + 1;
+    const bDiv = document.createElement('div');
+    bDiv.className = 'node-box branch-card locked' + (n.color === 'red' ? ' is-red' : '');
+    bDiv.id = 'step-node-' + stepNum;
+    bDiv.style.left = n.x + 'px';
+    bDiv.style.top = n.y + 'px';
+    bDiv.onclick = (e) => { e.stopPropagation(); goToStep(stepNum); };
+    const hlClass = n.color === 'red' ? 'b-highlight c-red-hl' : 'b-highlight';
+
+    let bodyHtml = '';
+    if (n.items && n.items.length) {
+      const ico = n.listType === 'x' ? '<span class="ico ico-x">&#10005;</span>' : '<span class="ico ico-v">&#10003;</span>';
+      bodyHtml = `<ul class="b-list">${n.items.map(it => `<li ondblclick="this.contentEditable=true; this.focus();">${ico}<span>${it}</span></li>`).join('')}</ul>`;
+    } else {
+      bodyHtml = `<div class="b-desc" ondblclick="this.contentEditable=true; this.focus();">${n.desc}</div>`;
+    }
+
+    bDiv.innerHTML = `
+      <div class="num-circle">${n.num}</div>
+      <span class="tag-pill ${colorClass(n.color)}" ondblclick="this.contentEditable=true; this.focus();">${n.tag}</span>
+      <div class="b-title" ondblclick="this.contentEditable=true; this.focus();">${n.title}</div>
+      <div class="${hlClass}" ondblclick="this.contentEditable=true; this.focus();">${n.highlight}</div>
+      ${bodyHtml}
+    `;
+    container.appendChild(bDiv);
+  });
+
+  // Step 5: CTA
+  const ctaDiv = document.createElement('div');
+  ctaDiv.className = 'node-box cta-card locked';
+  ctaDiv.id = 'step-node-5';
+  ctaDiv.style.left = f.cta.x + 'px';
+  ctaDiv.style.top = f.cta.y + 'px';
+  ctaDiv.onclick = (e) => { e.stopPropagation(); goToStep(5); };
+  ctaDiv.innerHTML = `
+    <div class="cta-badge" ondblclick="this.contentEditable=true; this.focus();">${f.cta.badge}</div>
+    <div class="cta-title" ondblclick="this.contentEditable=true; this.focus();">${f.cta.title}</div>
+    <div class="cta-sub" ondblclick="this.contentEditable=true; this.focus();">${f.cta.sub}</div>
+  `;
+  container.appendChild(ctaDiv);
+
+  goToStep(0);
+}
+
+function goToStep(step) {
+  const f = FWS[currentFwIdx];
+  currentStep = step;
+  if (step > maxUnlockedStep) maxUnlockedStep = step;
+  if (step === 6) maxUnlockedStep = 5;
+
+  for (let s = 0; s <= 6; s++) {
+    const btn = document.getElementById('btn-step-' + s);
+    if (btn) btn.classList.toggle('active', s === step);
+  }
+
+  for (let s = 0; s <= 5; s++) {
+    const el = document.getElementById('step-node-' + s);
+    if (!el) continue;
+    el.classList.toggle('locked', s > maxUnlockedStep);
+    el.classList.toggle('focused-now', s === step);
+  }
+
+  const vw = viewportEl.clientWidth;
+  const vh = viewportEl.clientHeight;
+  const singleBoxScale = Math.min(vw / 960, vh / 640, 1.32);
+
+  if (step === 0) {
+    centerCameraOn(f.center.x, f.center.y, singleBoxScale);
+  } else if (step >= 1 && step <= 4) {
+    const n = f.nodes[step - 1];
+    centerCameraOn(n.x, n.y, singleBoxScale);
+  } else if (step === 5) {
+    centerCameraOn(f.cta.x, f.cta.y, singleBoxScale);
+  } else if (step === 6) {
+    const overviewScale = Math.min(vw / 5400, vh / 3900);
+    centerCameraOn(3000, 2250, overviewScale);
+  }
+}
+
+viewportEl.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  canvasEl.classList.add('dragging');
+  const rect = viewportEl.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const wx = (mx - tx) / scale;
+  const wy = (my - ty) / scale;
+  const factor = e.deltaY < 0 ? 1.12 : 0.89;
+  scale = Math.min(2.2, Math.max(0.16, scale * factor));
+  tx = mx - wx * scale;
+  ty = my - wy * scale;
+  applyTransform();
+  clearTimeout(window._wTimer);
+  window._wTimer = setTimeout(() => canvasEl.classList.remove('dragging'), 150);
+}, { passive: false });
+
+viewportEl.addEventListener('mousedown', (e) => {
+  if (e.target.isContentEditable) return;
+  isDragging = true;
+  canvasEl.classList.add('dragging');
+  startX = e.clientX - tx;
+  startY = e.clientY - ty;
+});
+window.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  tx = e.clientX - startX;
+  ty = e.clientY - startY;
+  applyTransform();
+});
+window.addEventListener('mouseup', () => {
+  isDragging = false;
+  canvasEl.classList.remove('dragging');
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.target.isContentEditable) return;
+  if (e.key === 'ArrowRight' || e.code === 'Space') {
+    e.preventDefault();
+    goToStep((currentStep + 1) <= 6 ? currentStep + 1 : 0);
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    goToStep((currentStep - 1) >= 0 ? currentStep - 1 : 0);
+  } else if (['0','1','2','3','4','5','6'].includes(e.key)) {
+    goToStep(parseInt(e.key, 10));
+  } else if (e.key.toLowerCase() === 'h') {
+    document.body.classList.toggle('hide-ui');
+  } else if (e.key.toLowerCase() === 'd') {
+    document.body.classList.toggle('dark');
+  }
+});
+
+window.addEventListener('resize', () => goToStep(currentStep));
+
+renderTabs();
+let initIdx = 0;
+if (location.hash) {
+  const h = location.hash.slice(1);
+  const found = FWS.findIndex((f, i) => f.id === h || String(i) === h);
+  if (found >= 0) initIdx = found;
+}
+loadFW(initIdx);
+</script>
+</body>
+</html>
