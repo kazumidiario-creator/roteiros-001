@@ -366,6 +366,53 @@
     font-size: 11.5px;
     margin: 0 2px;
   }
+  .mob-nav {
+    display: none;
+    background: var(--bar-bg);
+    border-top: 1px solid var(--bar-border);
+    padding: 10px 14px;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    z-index: 100;
+  }
+  .mob-btn {
+    background: var(--pill-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    flex: 1;
+  }
+  .mob-btn.primary {
+    background: #10b981;
+    color: #ffffff;
+    border-color: #059669;
+  }
+  .mob-step-lbl {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--muted);
+    min-width: 72px;
+    text-align: center;
+  }
+  @media (max-width: 860px) {
+    .toolbar {
+      padding: 8px 10px;
+      gap: 6px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+    .tabs { flex-wrap: nowrap; flex-shrink: 0; }
+    .tab-btn { white-space: nowrap; font-size: 12px; padding: 6px 10px; }
+    .actions { flex-wrap: nowrap; flex-shrink: 0; }
+    .actions .step-pill:not(.keep-mob) { display: none; }
+    .bottom-bar { display: none; }
+    .mob-nav { display: flex; }
+  }
 </style>
 </head>
 <body class="no-spoilers dark">
@@ -380,7 +427,7 @@
     <button class="step-pill" id="btn-step-4" onclick="goToStep(4)">4. Bloco 4</button>
     <button class="step-pill" id="btn-step-5" onclick="goToStep(5)">5. CTA</button>
     <button class="step-pill" id="btn-step-6" onclick="goToStep(6)">6. Mapa Todo</button>
-    <button class="step-pill" onclick="document.body.classList.toggle('dark')" title="Tecla D">Claro / Escuro (D)</button>
+    <button class="step-pill keep-mob" onclick="document.body.classList.toggle('dark')" title="Tecla D">Tema (D)</button>
     <button class="step-pill" onclick="document.body.classList.toggle('hide-ui')" title="Tecla H">Limpar Tela (H)</button>
   </div>
 </div>
@@ -390,6 +437,12 @@
     <svg class="connectors" id="svg-lines" viewBox="0 0 6000 4200"></svg>
     <div id="nodes-container"></div>
   </div>
+</div>
+
+<div class="mob-nav" id="mob-nav">
+  <button class="mob-btn" onclick="goToStep(currentStep > 0 ? currentStep - 1 : 6)">&larr; Anterior</button>
+  <span class="mob-step-lbl" id="mob-step-lbl">0 / 6</span>
+  <button class="mob-btn primary" onclick="goToStep(currentStep < 6 ? currentStep + 1 : 0)">Próximo &rarr;</button>
 </div>
 
 <div class="bottom-bar">
@@ -665,9 +718,15 @@ function goToStep(step) {
     el.classList.toggle('focused-now', s === step);
   }
 
+  const mobLbl = document.getElementById('mob-step-lbl');
+  if (mobLbl) mobLbl.textContent = step === 6 ? 'Mapa todo' : (step + ' / 6');
+
   const vw = viewportEl.clientWidth;
   const vh = viewportEl.clientHeight;
-  const singleBoxScale = Math.min(vw / 960, vh / 640, 1.32);
+  const isMob = vw <= 860;
+  const singleBoxScale = isMob
+    ? Math.min((vw - 24) / 780, (vh - 28) / 580, 1.0)
+    : Math.min(vw / 960, vh / 640, 1.32);
 
   if (step === 0) {
     centerCameraOn(f.center.x, f.center.y, singleBoxScale);
@@ -677,10 +736,30 @@ function goToStep(step) {
   } else if (step === 5) {
     centerCameraOn(f.cta.x, f.cta.y, singleBoxScale);
   } else if (step === 6) {
-    const overviewScale = Math.min(vw / 5400, vh / 3900);
+    const overviewScale = Math.min((vw - 20) / 5400, (vh - 20) / 3900);
     centerCameraOn(3000, 2250, overviewScale);
   }
 }
+
+// Touch drag no celular
+viewportEl.addEventListener('touchstart', (e) => {
+  if (e.touches.length !== 1) return;
+  isDragging = true;
+  canvasEl.classList.add('dragging');
+  startX = e.touches[0].clientX - tx;
+  startY = e.touches[0].clientY - ty;
+}, { passive: true });
+viewportEl.addEventListener('touchmove', (e) => {
+  if (!isDragging || e.touches.length !== 1) return;
+  e.preventDefault();
+  tx = e.touches[0].clientX - startX;
+  ty = e.touches[0].clientY - startY;
+  applyTransform();
+}, { passive: false });
+viewportEl.addEventListener('touchend', () => {
+  isDragging = false;
+  canvasEl.classList.remove('dragging');
+});
 
 viewportEl.addEventListener('wheel', (e) => {
   e.preventDefault();

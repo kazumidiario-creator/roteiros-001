@@ -316,18 +316,42 @@
     text-align: center;
   }
 
+  .sb-close {
+    display: none;
+    background: #111111;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
   @media (max-width: 860px) {
-    .app { flex-direction: column; }
+    .app { display: block; }
     .sidebar {
+      position: fixed;
+      inset: 0;
       width: 100%;
-      height: auto;
-      max-height: 46vh;
-      position: static;
+      height: 100dvh;
+      max-height: none;
+      z-index: 200;
       border-right: none;
-      border-bottom: 1px solid #e5e7eb;
+      transform: translateX(-100%);
+      transition: transform 0.22s ease;
     }
-    .reader { padding: 22px 16px 70px; }
-    .topbar { padding: 10px 14px; }
+    body.mob-list-open .sidebar {
+      transform: translateX(0);
+    }
+    body.mob-list-open {
+      overflow: hidden;
+    }
+    .sb-close { display: inline-flex; align-items: center; }
+    .reader { padding: 18px 16px 80px; }
+    .topbar { padding: 10px 12px; gap: 6px; }
+    .btn { padding: 8px 10px; font-size: 12.5px; }
+    h1 { font-size: 22px; }
   }
 </style>
 </head>
@@ -338,7 +362,10 @@
     <div class="sb-top">
       <div class="sb-title">
         <strong>ROTEIRO REELS · 001</strong>
-        <span class="sb-count" id="sb-count"></span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="sb-count" id="sb-count"></span>
+          <button class="sb-close" onclick="closeMobList()">Fechar</button>
+        </div>
       </div>
       <input type="text" class="search" id="search" placeholder="Buscar tema, gancho ou palavra..." autocomplete="off">
       <div class="filters" id="filters">
@@ -468,8 +495,14 @@ function renderList() {
   container.querySelectorAll(".item-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       selectItem(btn.getAttribute("data-id"));
+      closeMobList();
     });
   });
+}
+
+function isMob() { return window.innerWidth <= 860; }
+function closeMobList() {
+  document.body.classList.remove("mob-list-open");
 }
 
 function selectItem(id, keepScroll) {
@@ -533,6 +566,10 @@ function toggleDone() {
 }
 
 function toggleList() {
+  if (isMob()) {
+    document.body.classList.toggle("mob-list-open");
+    return;
+  }
   document.body.classList.toggle("hide-list");
   const hidden = document.body.classList.contains("hide-list");
   document.getElementById("btn-toggle-list").textContent = hidden ? "Abrir Lista" : "Esconder Lista";
